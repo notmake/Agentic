@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentic-coding-agent"
+version = "0.1.0"
+description = "A from-scratch coding agent evaluated on SWE-bench Lite (zero agent framework, local LLM only)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "wit627" }]
+
+# 硬约束：openai 仅作本地推理服务的 HTTP 客户端；swebench 是官方评测工具，不是 agent 框架
+dependencies = [
+    "openai>=1.60",
+    "datasets>=2.20",
+    "huggingface_hub>=0.24",
+    "pyyaml>=6.0",
+    "requests>=2.31",
+    "swebench==5.0.2",          # 精确锁版：5.x 有破坏性变更，升级必须重跑 gold 哨兵
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+]
+
+[project.scripts]
+sweagent-run = "runner.run_instance:main"
+sweagent-batch = "runner.batch:main"
+
+[tool.setuptools]
+packages = ["sweagent", "runner", "eval"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

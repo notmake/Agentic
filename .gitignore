@@ -1,0 +1,24 @@
+# ── 01-coding-agent 运行数据（体积大、可重生成，不入库）──
+01-coding-agent/data/
+01-coding-agent/.env
+01-coding-agent/logs/
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+build/
+dist/
+
+# ── 系统 / 编辑器 ──
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# ── 模型权重 / 大文件 ──
+*.gguf
+*.safetensors
+*.bin

@@ -1,0 +1,12 @@
+🖥️ Computer Use Agent 的公开案例
+1. 用户亲测：让 Claude 操控电脑在亚马逊完成购物
+这是一篇公开的实测文章，作者在 Mac 上启用了 Claude 的 Computer Use 功能，让 Claude 自主在亚马逊上搜索、对比、挑选商品并加入购物车。Claude 通过移动鼠标、点击按钮、截图判断页面状态来完成整个流程，最终耗时约 15 分钟，成功添加了所有所需商品。文章也提到目前速度较慢，但核心价值在于可以将整个任务托管出去，让人同时去做别的事。
+
+2. 官方演示：Claude 自主启动应用、复现 Bug、修复并测试
+在 Claude Code 上线 Computer Use 功能的官方演示中，只给出一个指令，AI 就自己启动了正在开发的应用，自己复现 Bug、自己修复、自己测试修复效果，全程无需人工干预。
+
+3. 开源项目：跨应用的“转椅式”办公自动化（Excel ↔ HR 系统）
+E2B 开源 cookbook 中有一个案例：Claude 在 Linux 沙箱桌面上，先从 LibreOffice Calc 中读取新员工名单，然后切换到 OrangeHRM（一个没有 API 的开源 HR 系统），像人一样在浏览器中逐条录入员工信息，再把系统分配的 Employee ID 写回 Excel 表格。这个案例特别之处在于 Claude 会在桌面操作（Computer Use）和浏览器操作（Browser Use）之间动态切换，展示了多模态 Agent 处理真实办公软件的能力。
+
+4. 社区开源实现：基于 FastAPI 的多会话 Computer Use 应用
+GitHub 上有一个开源项目，基于 Anthropic 的 Computer Use 代码库构建，提供了可交互的 Web 界面，让用户通过自然语言指挥 Claude 在隔离的虚拟桌面中执行任务，并附有 5 分钟的演示视频，展示了多显示、多会话的 Computer Use 架构。
