@@ -60,15 +60,25 @@ python -m runner.run_instance --mock
 
 真模型链路需要 ≥48GB GPU（A800）——见 `ARCHITECTURE.md`。
 
+### 两条 agent 路线（并存）
+
+| 路线 | 实现 | 状态 |
+|---|---|---|
+| 自研 | `sweagent/` 手写循环（零框架） | ✅ 离线全绿，`--mock` 可跑 |
+| 成熟框架 | `openhands/`（OpenHands CLI 1.16 + 本地 vLLM） | ✅ 本机跑通，适配器可出 patch |
+
+OpenHands 路线使用本机 Qwen3-14B-AWQ（vLLM，16K 上下文，原生 tool calls）；
+27B GGUF 需 C++ `llama-server --jinja`，编译中。
+
 ### 项目状态
 
 | 阶段 | 内容 | 状态 |
 |---|---|---|
-| W0 | 环境摸底 + 仓库骨架 | 🚧 进行中 |
-| W1 | A800 模型服务 + gold 评测闭环 | ⬜ |
-| W2 | sweagent v1 离线全绿 | ⬜ |
-| W3 | Docker 沙箱 + 真模型冒烟 | ⬜ |
-| W4 | pilot + 迭代 + 模型决策门 | ⬜ |
+| W0 | 环境摸底 + 仓库骨架 | ✅ |
+| W1 | 本机模型服务 + gold 评测闭环 | 🟡 模型已通；gold 评测待 Docker |
+| W2 | sweagent v1 离线全绿 | ✅ |
+| W3 | OpenHands 集成 + 适配器 | 🟡 冒烟通过，SWE-bench 实例待数据集 |
+| W4 | pilot + 失败分类 | ⬜ |
 | W5 | Lite 300 全量 | ⬜ |
 | W6 | 工程收尾 + 开源 | ⬜ |
 
