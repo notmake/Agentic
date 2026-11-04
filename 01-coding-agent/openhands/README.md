@@ -8,15 +8,19 @@
 | 项 | 结果 |
 |---|---|
 | OpenHands CLI | **1.16.0**（SDK 1.21.0），Python 3.12 venv：`~/venvs/openhands` |
-| 本地模型 | Qwen3-14B-AWQ + vLLM 0.17.1（TP=2，16K ctx，`--tool-call-parser hermes`） |
-| 工具调用 | ✅ 原生 tool_calls 正常 |
+| 本地模型（主） | **Qwen3.8-27B-Q4_K_M GGUF + llama-server**（32K ctx，`--jinja`），工具调用 ✅，OpenHands 冒烟 381s |
+| 本地模型（备） | Qwen3-14B-AWQ + vLLM 0.17.1（TP=2，16K ctx，hermes parser），工具调用 ✅，冒烟 287s |
 | Local runtime | ✅ 不需要 Docker，CLI 直接在当前目录执行 |
-| 冒烟 | ✅ "创建 hello.txt 写入 hi" 成功，3 条消息完成 |
+| 冒烟 | ✅ "创建 hello.txt"（14B/27B 均通过）；修复 calc.py 产出正确 patch |
 
 ## 启动本地模型
 
 ```bash
-# 14B-AWQ（已验证可用；双 3060，16K 上下文）
+# 主：27B GGUF（已验证可用，32K 上下文，原生 tool calls）
+LLAMA_SERVER=/home/wit627/tools/llama-vendor/build/bin/llama-server \
+bash openhands/serve_llama.sh
+
+# 备：14B-AWQ + vLLM（16K 上下文）
 FLASHINFER_DISABLE_VERSION_CHECK=1 PYTORCH_ALLOC_CONF=expandable_segments:True \
 python -m vllm.entrypoints.openai.api_server \
   --model /home/wit627/project/models/Qwen3-14B-AWQ \
@@ -26,10 +30,11 @@ python -m vllm.entrypoints.openai.api_server \
   --enable-auto-tool-choice --tool-call-parser hermes \
   --enable-prefix-caching --disable-custom-all-reduce \
   --enforce-eager --max-num-seqs 4
-
-# 27B GGUF（等 llama.cpp 官方源码编译出 llama-server 后启用）
-bash openhands/serve_llama.sh
 ```
+
+> llama-server 编译要点：源码取 PyPI `llama-cpp-python` sdist 的 `vendor/llama.cpp`（官方源镜像），
+> gcc-12 主机编译器 + CUDA 12.8；需关掉 `-compress-mode`（nvcc 12.8 不认）。
+> 编译产物：`/home/wit627/tools/llama-vendor/build/bin/llama-server`。
 
 ## 跑一个实例
 
@@ -53,9 +58,9 @@ python -m openhands.run_instance --dataset data/datasets/lite.jsonl \
 
 ## 已知限制
 
-- **16K 上下文**：OpenHands 官方建议 32K+；14B 在双 12G 卡上开 32K 会 OOM（实测）。
-  复杂实例可能因上下文不足失败，这本身是失败分类里的 `LIMIT_ERROR` 一类。
+- **14B 备选只有 16K 上下文**：OpenHands 官方建议 32K+；双 12G 卡开 32K 会 OOM（实测）。
+  复杂实例可能因上下文不足失败，属于失败分类里的 `LIMIT_ERROR`。
+- **27B 用 32K 上下文**：双卡显存约 21G/24G，余量小；`n_slots=4` 时并发会挤爆，批量时需 `--parallel 1`。
 - **无 Docker**：官方 SWE-bench 评测仍需 Docker（当前用户不在 docker 组），暂时只能产出 patch，
   不能出官方解决率。
-- **27B**：现有 llama-cpp-python 服务不支持原生 tool_calls，需 C++ `llama-server --jinja`
-  （官方源码下载/编译中）。
+- **llama-cpp-python 不可用**：0.3.35 不支持原生 tool_calls（返回 XML 文本），必须用 C++ `llama-server --jinja`。
