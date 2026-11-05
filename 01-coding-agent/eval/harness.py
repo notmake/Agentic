@@ -31,15 +31,16 @@ def run_official(
     run_id: str,
     instance_ids: list[str] | None,
     max_workers: int,
-    cache_level: str,
+    dataset: str,
     timeout: int,
 ) -> int:
+    # 5.0.2 的 harness 没有 --cache_level（镜像缓存交给 Docker 层）
     cmd = [
         sys.executable, "-m", "swebench.harness.run_evaluation",
+        "-d", "SWE-bench/SWE-bench_Lite" if dataset == "lite" else dataset,
         "--predictions_path", predictions,
         "--run_id", run_id,
         "--max_workers", str(max_workers),
-        "--cache_level", cache_level,
         "--timeout", str(timeout),
     ]
     if instance_ids:
@@ -72,7 +73,6 @@ def main() -> None:
     ap.add_argument("--run-id", default="")
     ap.add_argument("--dataset", choices=["lite", "verified"], default="lite")
     ap.add_argument("--max-workers", type=int, default=4)
-    ap.add_argument("--cache-level", default="env")
     ap.add_argument("--timeout", type=int, default=1800)
     ap.add_argument("--gold", action="store_true", help="gold 哨兵：官方内建 golden patch 校验")
     ap.add_argument("--instances", type=int, default=3, help="gold 模式取前 N 个实例")
@@ -100,7 +100,7 @@ def main() -> None:
             raise SystemExit("该 run_id 已有官方结果，换 run_id（缓存按 run_id 记账）或加 --force")
 
     rc = run_official(predictions, run_id, instance_ids, args.max_workers,
-                      args.cache_level, args.timeout)
+                      args.dataset, args.timeout)
     report = archive_report(run_id, dest)
     print(f"\n官方报告：{report or '未找到（检查 logs/ 路径）'}")
     raise SystemExit(rc)
