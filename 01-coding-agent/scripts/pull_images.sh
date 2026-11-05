@@ -2,26 +2,34 @@
 # 预拉 SWE-bench 评测镜像（5.0.2 起 harness 不再自动拉取，预拉是必需步骤）
 #
 # 用法（开发机）：
-#   bash pull_images.sh astropy__astropy-12907 sympy__sympy-20590 pytest-dev__pytest-7432
-#   bash pull_images.sh --lite-batch 3     # 按 Lite 实例清单前 N 个拉取（需先跑 eval/prepare.py）
+#   bash pull_images.sh astropy__astropy-12907 sympy__sympy-20590
+#   bash pull_images.sh --lite-batch 3          # 按实例清单前 N 个拉取
+#   MIRROR=docker.1panel.live bash pull_images.sh <ids>   # 国内镜像源（daocloud 不放行 swebench）
 #
 # 命名规则：swebench/sweb.eval.x86_64.{org}_1776_{repo}-{issue}:latest
-#   （数据集里的 __ 在镜像名里变成 _1776_，Docker Hub 不允许双下划线）
 set -eu
 
+MIRROR="${MIRROR:-}"
+
 if ! command -v docker >/dev/null 2>&1; then
-  echo "docker 不可用（W0 已知：当前用户不在 docker 组，需 sudo 或加入 docker 组后重登）" >&2
+  echo "docker 不可用" >&2
   exit 1
 fi
 
 pull_one() {
   local iid="$1"
   local image="swebench/sweb.eval.x86_64.${iid//__/_1776_}:latest"
-  echo "==> $iid -> $image"
+  local ref="$image"
+  [ -n "$MIRROR" ] && ref="$MIRROR/$image"
+  echo "==> $iid"
+  echo "    pull: $ref"
   if docker image inspect "$image" >/dev/null 2>&1; then
     echo "    已存在，跳过"
-  else
-    docker pull "$image"
+    return
+  fi
+  docker pull "$ref"
+  if [ "$ref" != "$image" ]; then
+    docker tag "$ref" "$image"
   fi
 }
 

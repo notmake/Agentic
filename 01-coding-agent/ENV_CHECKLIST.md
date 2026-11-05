@@ -9,7 +9,8 @@
 | 磁盘 | `/` 915G，已用 534G，**可用 336G**（2026-11-04） | 评测镜像 ~120GiB + artifacts ≤50GB 预算内 |
 | CPU | 16 核 | 评测 `max_workers` 可从 4 起上调 |
 | 内存 | 31Gi，已用 15Gi，**交换 8G 已用 7.7G**（2026-11-04） | 跑批量评测前必须停 27B/4B 服务腾内存 |
-| Docker | 29.3.0，**当前用户无 daemon 权限**（permission denied） | 待办：`sudo usermod -aG docker $USER` 后重登，或全程 sudo |
+| Docker | 29.3.0，**已加入 docker 组**（2026-11-05，需 `newgrp docker` 或重登） | 工具 shell 用 `sg docker -c '...'` 执行 |
+| Docker 镜像源 | daemon.json: daocloud + xuanyuan（均不放行 swebench 命名空间，403） | 评测镜像改用 **docker.1panel.live** 拉取后 retag |
 | Python | conda env `pytorch`，Python 3.10.20 | `uv` 未安装，用 pip 即可 |
 | git | 2.43.0 | |
 | 端口 8000 | **被占用**（`backend/api_server/run.py`，pid 1599959） | → A800 隧道改用 **8001** |
@@ -43,6 +44,7 @@
 
 ## 待办（W0 收尾前）
 
-- [ ] 用户在 A800 上运行 `scripts/a800_survey.sh`，结果回填上表
-- [ ] 开发机 docker 组权限处理（`sudo usermod -aG docker wit627 && newgrp docker`）
-- [ ] 确定 A800 上 27B 权重来源：本地上传 vs 远程下载（建议远程 `hf-mirror` 下 Qwen 官方 27B 的 GGUF 或直接用已有的 4B/14B-AWQ 做管线验证）
+- [x] 开发机 docker 组权限处理（2026-11-05 完成）
+- [ ] A800 摸底（已暂缓，本机开发）
+- [ ] gold 3/3 哨兵（镜像拉取中）
+- [ ] 第一个真实实例（OpenHands + 27B）

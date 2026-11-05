@@ -60,6 +60,37 @@ def prepare_workspace(instance: dict, workspace: Path) -> None:
                    cwd=workspace, check=True)
 
 
+def _image_name(instance_id: str) -> str:
+    return f"swebench/sweb.eval.x86_64.{instance_id.replace('__', '_1776_')}:latest"
+
+
+def prepare_workspace_from_image(instance: dict, workspace: Path) -> None:
+    """从官方评测镜像导出 /testbed（避免 GitHub 慢速克隆）。
+
+    用 tar 流而不是 docker cp：文件属主是当前用户，OpenHands 才能写入。
+    """
+    if (workspace / ".git").exists():
+        print(f"工作区已存在：{workspace}")
+        return
+    image = _image_name(instance["instance_id"])
+    name = f"sweagent-export-{instance['instance_id'].replace('__', '-')}"
+    workspace.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["docker", "rm", "-f", name], capture_output=True)
+    subprocess.run(["docker", "run", "-d", "--name", name, "--entrypoint", "sleep",
+                    image, "infinity"], check=True, capture_output=True)
+    try:
+        # docker exec tar | tar：解包进程是当前用户
+        with subprocess.Popen(["docker", "exec", name, "tar", "-C", "/testbed", "-cf", "-", "."],
+                              stdout=subprocess.PIPE) as p:
+            subprocess.run(["tar", "-C", str(workspace), "-xf", "-"],
+                           stdin=p.stdout, check=True)
+    finally:
+        subprocess.run(["docker", "rm", "-f", name], capture_output=True)
+    subprocess.run(["git", "reset", "--hard", instance["base_commit"]],
+                   cwd=workspace, check=True, capture_output=True)
+    subprocess.run(["git", "clean", "-fdq"], cwd=workspace, check=False)
+
+
 def build_task(instance: dict) -> str:
     return (
         f"Fix the following issue in this repository.\n\n"
@@ -89,6 +120,8 @@ def main() -> None:
     ap.add_argument("--instance-file", default="")
     ap.add_argument("--task", default="", help="直接给任务（配合 --repo-dir 冒烟）")
     ap.add_argument("--workspace", default="", help="克隆目标目录")
+    ap.add_argument("--from-image", action="store_true",
+                    help="从官方评测镜像导出 /testbed（推荐，避免 GitHub 慢速克隆）")
     ap.add_argument("--output-dir", default="")
     ap.add_argument("--timeout", type=int, default=3600)
     args = ap.parse_args()
@@ -104,7 +137,10 @@ def main() -> None:
     else:
         instance = load_instance(args)
         workspace = Path(args.workspace or ROOT / "data/workspaces" / instance["instance_id"])
-        prepare_workspace(instance, workspace)
+        if args.from_image:
+            prepare_workspace_from_image(instance, workspace)
+        else:
+            prepare_workspace(instance, workspace)
         task = build_task(instance)
 
     out_dir = Path(args.output_dir or ROOT / "data/runs/openhands" / instance["instance_id"])
