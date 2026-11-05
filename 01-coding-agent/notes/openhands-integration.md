@@ -52,6 +52,23 @@ eval/ 官方 swebench harness（需 Docker，权限修复后）
 - [x] 单任务跑通并产出 git diff（14B-AWQ，calc 修复 ~287s）
 - [x] 适配器：`openhands/run_instance.py` → predictions.jsonl
 
+## 实测结果（2026-11-05）
+
+| 验证项 | 结果 |
+|---|---|
+| gold 3/3 哨兵（astropy / django / matplotlib） | ✅ 全部 `resolved=true`，`infra_failure=false` |
+| OpenHands + 27B 跑 astropy__astropy-12907 | ✅ 1975s，patch 504B，修改 `separable.py` 的 `_cstack`（与官方修复一致） |
+| 14B-AWQ 冒烟 | ✅ 287s，正确修复 calc.py |
+| 27B 冒烟 | ✅ 381s，正确修复 calc.py |
+
+**踩坑：reasoning_effort**。OpenHands 默认发 `high`，Qwen3.8 GGUF 模板只接受
+`xhigh/medium/low` → llama-server 返回 Jinja Exception，agent 重试后空手结束（空补丁）。
+修复：`~/.openhands/agent_settings.json` 固定 `reasoning_effort=medium`，详见
+`openhands/README.md`。
+
+**镜像**：daocloud/xuanyuan 不放行 `swebench` 命名空间（403），实测 `docker.1panel.live`
+可用；拉取会偶发 connection reset，`scripts/pull_gold_retry.sh` 自动重试并复用已下载层。
+
 ## 风险
 
 1. **OpenHands V1 可能强依赖沙箱/Docker**：若 local runtime 被移除，需要用户先修复 docker 权限（`sudo usermod -aG docker wit627`）。

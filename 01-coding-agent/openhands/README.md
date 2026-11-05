@@ -56,6 +56,28 @@ python -m openhands.run_instance --dataset data/datasets/lite.jsonl \
 输出：`data/runs/openhands/<instance_id>/{openhands.log, patch.diff, prediction.jsonl}`，
 与自研 runner 的输出格式一致，可直接走 `eval/harness.py` + `eval/classify.py`。
 
+## 关键坑：reasoning_effort
+
+OpenHands 默认发 `reasoning_effort="high"`，而 Qwen3.8 GGUF 的 chat template 只接受
+`xhigh / medium / low` → llama-server 返回 `Jinja Exception: Unexpected reasoning effort high`，
+agent 重试几次后空手结束（patch 为空）。
+
+修复：生成 `~/.openhands/agent_settings.json`，把 LLM 的 `reasoning_effort` 设为 `medium`
+（`--override-with-envs` 只覆盖 model/base_url/api_key，会保留该字段）：
+
+```bash
+~/venvs/openhands/bin/python - <<'EOF'
+from openhands.sdk import LLM
+from openhands_cli.utils import get_default_cli_agent
+import pathlib
+llm = LLM(model="openai/Qwen3.8-27B", api_key="local",
+          base_url="http://127.0.0.1:6790/v1", usage_id="agent",
+          reasoning_effort="medium")
+p = pathlib.Path.home()/".openhands/agent_settings.json"
+p.write_text(get_default_cli_agent(llm).model_dump_json(context={"expose_secrets": True}))
+EOF
+```
+
 ## 已知限制
 
 - **14B 备选只有 16K 上下文**：OpenHands 官方建议 32K+；双 12G 卡开 32K 会 OOM（实测）。

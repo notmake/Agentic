@@ -50,7 +50,11 @@ def run_official(
 
 
 def archive_report(run_id: str, dest: Path) -> Path | None:
-    """把官方 report.json 归档进 run 目录（新旧日志路径都找）。"""
+    """把官方 report.json 归档进 run 目录。
+
+    5.0.2 按实例写 report.json（logs/.../<model>/<instance>/report.json），
+    需要合并成一个 {instance_id: {...}} 文件，供 classify/report 使用。
+    """
     candidates = [
         ROOT / "logs" / "run_evaluation" / run_id,
         ROOT / "logs" / "evaluation" / run_id,      # 5.x CHANGELOG 里的新路径
@@ -59,9 +63,19 @@ def archive_report(run_id: str, dest: Path) -> Path | None:
         if not base.exists():
             continue
         reports = list(base.rglob("report.json"))
-        if reports:
+        if not reports:
+            continue
+        merged: dict = {}
+        for rp in reports:
+            try:
+                merged.update(json.loads(rp.read_text(encoding="utf-8")))
+            except Exception:  # noqa: BLE001
+                continue
+        if merged:
             dest.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(reports[0], dest / "official_report.json")
+            (dest / "official_report.json").write_text(
+                json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
             return dest / "official_report.json"
     return None
 
@@ -98,6 +112,12 @@ def main() -> None:
             raise SystemExit(f"找不到 predictions：{predictions}（先跑 runner/batch.py）")
         if dest.joinpath("official_report.json").exists() and not args.force:
             raise SystemExit("该 run_id 已有官方结果，换 run_id（缓存按 run_id 记账）或加 --force")
+        # 只评 predictions 里实际有的实例（避免 ids 清单与预测不一致）
+        pred_ids = []
+        for line in Path(predictions).read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                pred_ids.append(json.loads(line)["instance_id"])
+        instance_ids = [i for i in (instance_ids or pred_ids) if i in set(pred_ids)] or pred_ids
 
     rc = run_official(predictions, run_id, instance_ids, args.max_workers,
                       args.dataset, args.timeout)
