@@ -128,7 +128,11 @@ def main() -> None:
     run_dir = Path(args.run_dir)
     official = find_official_report(run_dir)
     rows = []
-    for inst_dir in sorted(p for p in run_dir.iterdir() if p.is_dir()):
+    # 两种布局：run/<instance_id>/（批量）或 run/ 直接就是单实例（OpenHands 适配器）
+    inst_dirs = [p for p in run_dir.iterdir() if p.is_dir()]
+    if not inst_dirs and (run_dir / "prediction.jsonl").exists():
+        inst_dirs = [run_dir]
+    for inst_dir in sorted(inst_dirs):
         row = classify_instance(inst_dir, official)
         (inst_dir / "classification.json").write_text(
             json.dumps(row, ensure_ascii=False, indent=2), encoding="utf-8"
