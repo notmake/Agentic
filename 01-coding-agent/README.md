@@ -77,8 +77,8 @@ OpenHands 路线使用本机 Qwen3-14B-AWQ（vLLM，16K 上下文，原生 tool 
 | W0 | 环境摸底 + 仓库骨架 | ✅ |
 | W1 | 本机模型服务 + gold 评测闭环 | 🟡 模型已通；gold 评测待 Docker |
 | W2 | sweagent v1 离线全绿 | ✅ |
-| W3 | OpenHands 集成 + 适配器 | 🟡 冒烟通过，SWE-bench 实例待数据集 |
-| W4 | pilot + 失败分类 | ⬜ |
+| W3 | OpenHands 集成 + 适配器 | ✅ |
+| W4 | gold 3/3 + 首批 3 实例（3/3 resolved）→ 10 实例 pilot | 🟡 进行中 |
 | W5 | Lite 300 全量 | ⬜ |
 | W6 | 工程收尾 + 开源 | ⬜ |
 
