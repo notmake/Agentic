@@ -26,6 +26,28 @@
 2. 首次空补丁不是模型能力问题，是协议不兼容（reasoning_effort）；看 llama-server 日志才定位到。
 3. 用官方镜像导出的 `/testbed` 作为 OpenHands 工作区，避免 GitHub 慢速克隆，且保证与评测环境同源。
 
+**django__django-10914：resolved ✅**
+
+- 耗时 360s，patch 625B：`FILE_UPLOAD_PERMISSIONS = None` → `0o644`（与官方修复一致）
+- 官方报告：`resolved=true`，F2P/P2P 全过
+
+**matplotlib__matplotlib-18869：resolved ✅**
+
+- 耗时 992s，patch 1827B：在 `lib/matplotlib/__init__.py` 增加 `_parse_to_version_info`
+  与 `version_info` 懒加载（与官方修复思路一致）
+- 官方报告：`resolved=true`，F2P 4/4，P2P 无回归
+
+### 首批汇总（3 实例，全部来自 Lite 分层采样）
+
+| 实例 | 耗时 | 结果 |
+|---|---:|---|
+| astropy__astropy-12907 | 1975s | resolved |
+| django__django-10914 | 360s | resolved |
+| matplotlib__matplotlib-18869 | 992s | resolved |
+
+**3/3 = 100%**（样本量小，只说明管线 + 27B 在简单实例上可用；下一阶段扩到 10-20 实例看真实分布）。
+平均耗时约 18 分钟/实例，单卡 27B Q4 + 32K ctx。
+
 ## 待补
 
 - django / matplotlib 实例结果

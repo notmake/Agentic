@@ -1,15 +1,26 @@
 #!/usr/bin/env bash
-# 带重试的 gold 镜像拉取（国内镜像偶发 connection reset；docker pull 会复用已下载层）
+# 带重试的实例镜像拉取（国内镜像偶发 connection reset；docker pull 会复用已下载层）
+#
+# 用法：
+#   MIRROR=docker.1panel.live bash scripts/pull_gold_retry.sh            # 读 lite_instance_ids.txt
+#   MIRROR=docker.1panel.live bash scripts/pull_gold_retry.sh --limit 10
+#   bash scripts/pull_gold_retry.sh astropy__astropy-12907 ...           # 指定实例
 set -u
 
 MIRROR="${MIRROR:-docker.1panel.live}"
-IDS=(
-  astropy__astropy-12907
-  django__django-10914
-  matplotlib__matplotlib-18869
-)
+LIMIT=""
+if [ "${1:-}" = "--limit" ]; then LIMIT="${2:-}"; shift 2; fi
+
+if [ "$#" -gt 0 ]; then
+  IDS=("$@")
+else
+  IDS_FILE="$(dirname "$0")/../data/datasets/lite_instance_ids.txt"
+  [ -f "$IDS_FILE" ] || { echo "缺少 $IDS_FILE" >&2; exit 1; }
+  mapfile -t IDS < <( [ -n "$LIMIT" ] && head -n "$LIMIT" "$IDS_FILE" || cat "$IDS_FILE" )
+fi
 
 for iid in "${IDS[@]}"; do
+  [ -z "$iid" ] && continue
   image="swebench/sweb.eval.x86_64.${iid//__/_1776_}:latest"
   if docker image inspect "$image" >/dev/null 2>&1; then
     echo "== $iid 已存在，跳过"
@@ -29,4 +40,4 @@ for iid in "${IDS[@]}"; do
   [ "$ok" = 1 ] && echo "== $iid OK" || echo "== $iid FAILED"
 done
 echo "== 全部结束"
-docker images --format '{{.Repository}}:{{.Tag}} {{.Size}}' | grep swebench || true
+docker images --format '{{.Repository}}:{{.Tag}} {{.Size}}' | grep '^swebench' || true
