@@ -13,7 +13,7 @@
 #   MODEL_PATH=... CTX=32768 PORT=6790 bash openhands/serve_llama.sh
 set -eu
 
-LLAMA_SERVER="${LLAMA_SERVER:-/home/wit627/tools/llama.cpp/build/bin/llama-server}"
+LLAMA_SERVER="${LLAMA_SERVER:-/home/wit627/tools/llama-vendor/build/bin/llama-server}"
 MODEL_PATH="${MODEL_PATH:-/home/wit627/project/models/Qwen3.8-27B-Q4_K_M.gguf}"
 ALIAS="${ALIAS:-Qwen3.8-27B}"
 PORT="${PORT:-6790}"
