@@ -17,9 +17,13 @@ LLAMA_SERVER="${LLAMA_SERVER:-/home/wit627/tools/llama.cpp/build/bin/llama-serve
 MODEL_PATH="${MODEL_PATH:-/home/wit627/project/models/Qwen3.8-27B-Q4_K_M.gguf}"
 ALIAS="${ALIAS:-Qwen3.8-27B}"
 PORT="${PORT:-6790}"
-CTX="${CTX:-32768}"
+# 2026-11-06 显存事故后调稳：16K + 单槽 + 量化 KV。
+# 32K + n_slots=4 时长 prompt 触发 CUDA OOM/Xid 154（双卡掉线，需重启）。
+CTX="${CTX:-16384}"
 NGL="${NGL:-99}"
 SPLIT_MODE="${SPLIT_MODE:-layer}"
+PARALLEL="${PARALLEL:-1}"
+KV_TYPE="${KV_TYPE:-q8_0}"
 
 if [ ! -x "$LLAMA_SERVER" ]; then
   echo "找不到 llama-server：$LLAMA_SERVER（先编译 llama.cpp）" >&2
@@ -32,8 +36,11 @@ exec "$LLAMA_SERVER" \
   --alias "$ALIAS" \
   --host 0.0.0.0 --port "$PORT" \
   --ctx-size "$CTX" \
+  --parallel "$PARALLEL" \
   --n-gpu-layers "$NGL" \
   --split-mode "$SPLIT_MODE" \
   --flash-attn on \
+  --cache-type-k "$KV_TYPE" \
+  --cache-type-v "$KV_TYPE" \
   --jinja \
   --no-webui

@@ -78,6 +78,19 @@ p.write_text(get_default_cli_agent(llm).model_dump_json(context={"expose_secrets
 EOF
 ```
 
+## 显存事故（2026-11-06）
+
+32K 上下文 + `n_slots=4` 下，长 prompt 触发 llama-server CUDA 错误
+（`rms_norm_mul_f32_cuda` on device 1），内核报 **Xid 154 / Node Reboot Required**，
+两张 3060 同时掉线，只能重启恢复。
+
+之后的稳定配置（`serve_llama.sh` 默认值已改）：
+
+- `--ctx-size 16384`（OpenHands 最小可用；32K 余量太小）
+- `--parallel 1`（单槽，避免 4 份 KV 预留）
+- `--cache-type-k q8_0 --cache-type-v q8_0`（量化 KV，省显存）
+- 先跑一个实例观察 `nvidia-smi` 峰值，再批量；出现 Xid 立即停
+
 ## 已知限制
 
 - **14B 备选只有 16K 上下文**：OpenHands 官方建议 32K+；双 12G 卡开 32K 会 OOM（实测）。
