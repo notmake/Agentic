@@ -7,7 +7,8 @@
 #   bash scripts/pull_gold_retry.sh astropy__astropy-12907 ...           # 指定实例
 set -u
 
-MIRROR="${MIRROR:-docker.1panel.live}"
+# MIRROR 未设置时用 1panel；显式 MIRROR="" 表示直连官方源（dockerd 走代理时用）
+MIRROR="${MIRROR-docker.1panel.live}"
 LIMIT=""
 if [ "${1:-}" = "--limit" ]; then LIMIT="${2:-}"; shift 2; fi
 
@@ -29,9 +30,10 @@ for iid in "${IDS[@]}"; do
   echo "== $iid"
   ok=0
   for attempt in $(seq 1 12); do
-    echo "-- attempt $attempt: $MIRROR/$image"
-    if docker pull "$MIRROR/$image"; then
-      docker tag "$MIRROR/$image" "$image"
+    if [ -n "$MIRROR" ]; then ref="$MIRROR/$image"; else ref="$image"; fi
+    echo "-- attempt $attempt: $ref"
+    if docker pull "$ref"; then
+      if [ "$ref" != "$image" ]; then docker tag "$ref" "$image"; fi
       ok=1
       break
     fi

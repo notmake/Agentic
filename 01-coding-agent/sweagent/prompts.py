@@ -10,7 +10,7 @@ from __future__ import annotations
 
 SYSTEM_PROMPT = """You are a software engineer agent fixing a real GitHub issue in a repository.
 
-You work inside a container. The repository is checked out at the base commit under /testbed.
+You work inside {workdir}. The repository is checked out at the base commit there.
 Use the provided tools to explore the code, reproduce the bug, edit files, and verify your fix.
 
 ## Tools
@@ -46,7 +46,7 @@ TASK_TEMPLATE = """## Issue
 ## Repository
 {repo} at base commit {base_commit}
 
-The code is checked out at /testbed. Start by exploring the repository structure and locating the code related to this issue.
+The code is checked out at {workdir}. Start by exploring the repository structure and locating the code related to this issue.
 """
 
 
@@ -54,15 +54,18 @@ def build_task_prompt(
     problem_statement: str,
     repo: str,
     base_commit: str,
+    workdir: str = "/testbed",
 ) -> str:
     return TASK_TEMPLATE.format(
         problem_statement=problem_statement.strip(),
         repo=repo,
         base_commit=base_commit,
+        workdir=workdir,
     )
 
 
-def build_system_prompt(protocol: str) -> str:
+def build_system_prompt(protocol: str, workdir: str = "/testbed") -> str:
+    prompt = SYSTEM_PROMPT.format(workdir=workdir)
     if protocol == "text":
-        return SYSTEM_PROMPT + TEXT_PROTOCOL_ADDENDUM
-    return SYSTEM_PROMPT
+        return prompt + TEXT_PROTOCOL_ADDENDUM
+    return prompt

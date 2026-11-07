@@ -107,6 +107,8 @@ def main() -> None:
     ap.add_argument("--instance-file", default="")
     ap.add_argument("--local-dir", default="", help="用本地目录代替 Docker 沙箱（调试）")
     ap.add_argument("--output-dir", default="")
+    ap.add_argument("--context-window", type=int, default=16384,
+                    help="模型上下文窗口（27B 稳定档 16384；A800 可调高）")
     ap.add_argument("--mock", action="store_true", help="离线演示：自建仓库 + MockModel")
     args = ap.parse_args()
 
@@ -144,13 +146,14 @@ def main() -> None:
         instance_id=instance["instance_id"],
         backend=backend_name,
         output_dir=str(out_dir),
-        context_window=32_768,
+        context_window=args.context_window,
     )
     agent = Agent(llm, env, config)
     result = agent.run(
-        build_system_prompt(protocol),
+        build_system_prompt(protocol, workdir=getattr(env, "workdir", "/testbed")),
         build_task_prompt(
-            instance["problem_statement"], instance["repo"], instance["base_commit"]
+            instance["problem_statement"], instance["repo"], instance["base_commit"],
+            workdir=getattr(env, "workdir", "/testbed"),
         ),
     )
 

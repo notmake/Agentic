@@ -14,7 +14,7 @@ export LLM_MODEL="${LLM_MODEL:-openai/Qwen3.8-27B}"
 export LLM_BASE_URL="${LLM_BASE_URL:-http://127.0.0.1:6790/v1}"
 export LLM_API_KEY="${LLM_API_KEY:-local}"
 
-IDS_FILE="$ROOT/data/datasets/lite_instance_ids.txt"
+IDS_FILE="${ORDER_FILE:-$ROOT/data/datasets/lite_instance_ids.txt}"
 RUN_DIR="$ROOT/data/runs/openhands-batch/$RUN_ID"
 mkdir -p "$RUN_DIR"
 
@@ -29,7 +29,14 @@ for iid in "${IDS[@]}"; do
     continue
   fi
   echo "等待镜像 $image ..."
-  until docker image inspect "$image" >/dev/null 2>&1; do sleep 30; done
+  waited=0
+  until docker image inspect "$image" >/dev/null 2>&1; do
+    sleep 30; waited=$((waited + 30))
+    if [ "$waited" -ge "${MAX_IMAGE_WAIT:-600}" ]; then
+      echo "镜像未就绪（等待 ${waited}s），跳过 $iid"
+      continue 2
+    fi
+  done
   python3 -m openhands.run_instance \
     --dataset "$ROOT/data/datasets/lite.jsonl" \
     --instance-id "$iid" --from-image \
