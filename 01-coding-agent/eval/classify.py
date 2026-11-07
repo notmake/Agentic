@@ -23,6 +23,8 @@ import re
 from pathlib import Path
 
 TEST_COMMAND = re.compile(r"\b(pytest|python -m pytest|unittest|tox|nox|runtests?)\b")
+# rich 会把日志折行，正则要允许中间空白/换行
+FORMAT_ERROR_PATTERN = re.compile(r"Failed to\s+parse tool call arguments", re.IGNORECASE)
 
 
 def load_json(path: Path, default=None):
@@ -60,12 +62,25 @@ def ran_tests(history: list[dict]) -> bool:
     return False
 
 
+def read_openhands_log(inst_dir: Path) -> str:
+    """框架模式没有 trajectory.json，信号在 openhands.log 里。"""
+    for name in ("openhands.log", "batch_runner.log"):
+        p = inst_dir / name
+        if p.exists():
+            try:
+                return p.read_text(encoding="utf-8", errors="replace")
+            except Exception:  # noqa: BLE001
+                pass
+    return ""
+
+
 def classify_instance(inst_dir: Path, official: dict) -> dict:
     traj = load_json(inst_dir / "trajectory.json", {})
     info = traj.get("info", {})
     history = traj.get("messages", [])
     iid = info.get("instance_id") or inst_dir.name
 
+    log_text = read_openhands_log(inst_dir)
     exit_status = info.get("exit_status", "")
     prediction = {}
     pred_file = inst_dir / "prediction.jsonl"
@@ -81,6 +96,11 @@ def classify_instance(inst_dir: Path, official: dict) -> dict:
 
     if resolved:
         return {**base, "category": "RESOLVED", "sublabel": "", "reason": "官方判定 resolved"}
+    # 只有解析错误导致最终没有产出补丁，才归 FORMAT_ERROR；
+    # 若中途报错但最后仍产出了补丁，失败应归 PATCH_ERROR（按测试结果细分）
+    if FORMAT_ERROR_PATTERN.search(log_text) and not patch.strip():
+        return {**base, "category": "FORMAT_ERROR", "sublabel": "tool_call_json",
+                "reason": "模型生成的工具调用参数不是合法 JSON，服务端拒绝"}
     if exit_status == "SandboxError":
         return {**base, "category": "TEST_ENV_ERROR", "sublabel": "",
                 "reason": "沙箱/镜像故障"}
@@ -114,7 +134,7 @@ def classify_instance(inst_dir: Path, official: dict) -> dict:
             sublabel, reason = "5e_p2p_regression", "破坏了原本通过的测试"
         elif f2p.get("success"):
             sublabel, reason = "5d_partial_f2p", "只修好部分 FAIL_TO_PASS"
-    if not ran_tests(history):
+    if not ran_tests(history) and not TEST_COMMAND.search(log_text):
         sublabel = "5b_never_tested"
         reason = "整个轨迹没有运行过测试"
     return {**base, "category": "PATCH_ERROR", "sublabel": sublabel, "reason": reason}

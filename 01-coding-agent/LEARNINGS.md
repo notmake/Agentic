@@ -59,6 +59,18 @@
   更聪明的压缩策略（保留关键文件内容）或更大上下文，而不是简单按步丢历史
 - 分类管线工作正常：`LIMIT_ERROR`
 
+## 2026-11-07 · pilot-10（10 实例）
+
+**6/10 resolved（60%）**。失败 4 例：2 个 FORMAT_ERROR（工具调用 JSON 不合法、空补丁）、
+1 个 PATCH_ERROR 5d（flask 部分修复）、1 个 PATCH_ERROR 5b（requests 没跑测试就提交）。
+逐实例耗时与 patch 见 `notes/pilot-10-results.md`。
+
+关键结论：
+
+1. 16K 上下文 + 27B Q4 在 6 个实例上够用；复杂实例更易出现长输出与 JSON 解析失败。
+2. 工具调用 JSON 健壮性是当前最大短板（服务端 parser 严格），修复优先级高于换模型。
+3. 自研 agent 在同实例上 LIMIT_ERROR —— 框架的上下文/工具编排优势被数据证实。
+
 ## 待补
 
 - django / matplotlib 实例结果
