@@ -15,6 +15,7 @@ export LLM_BASE_URL="${LLM_BASE_URL:-http://127.0.0.1:6790/v1}"
 export LLM_API_KEY="${LLM_API_KEY:-local}"
 
 IDS_FILE="${ORDER_FILE:-$ROOT/data/datasets/lite_instance_ids.txt}"
+DATASET="${DATASET:-$ROOT/data/datasets/lite.jsonl}"
 RUN_DIR="$ROOT/data/runs/openhands-batch/$RUN_ID"
 mkdir -p "$RUN_DIR"
 
@@ -38,7 +39,7 @@ for iid in "${IDS[@]}"; do
     fi
   done
   python3 -m openhands.run_instance \
-    --dataset "$ROOT/data/datasets/lite.jsonl" \
+    --dataset "$DATASET" \
     --instance-id "$iid" --from-image \
     --output-dir "$RUN_DIR/$iid" > "$RUN_DIR/$iid.log" 2>&1
   echo "完成 $iid（exit=$?）"

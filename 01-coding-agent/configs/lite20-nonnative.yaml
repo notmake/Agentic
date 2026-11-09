@@ -1,0 +1,35 @@
+# 实验配置卡：20 实例 × OpenHands × 非原生工具调用
+# 所有数字都与这个 run_id 绑定；换任何一项都要换 run_id。
+
+run_id: lite20-nonnative
+created_at: 2026-11-09
+
+dataset:
+  name: SWE-bench/SWE-bench_Lite
+  split: test
+  revision: b0dde1093fe417d83b7184254edf8199c1f0dff5
+  instances_file: data/datasets/lite20_instance_ids.txt
+  n_instances: 20   # 10 个 pilot 已有实例 + 10 个新实例
+
+agent:
+  framework: OpenHands CLI 1.16.0 (SDK 1.21.0)
+  runtime: local（无 Docker 沙箱，直接在导出的 /testbed 工作区执行）
+  tool_calling: non_native   # native_tool_calling=False（prompt-mocked tools）
+  max_steps: 由框架默认
+  per_instance_timeout_s: 3600
+
+model:
+  name: Qwen3.8-27B-Q4_K_M (GGUF)
+  serving: llama-server (llama.cpp, CUDA)
+  context_window: 16384
+  parallel: 1
+  kv_cache: q8_0
+  temperature: 0.0
+  reasoning_effort: medium
+
+evaluation:
+  harness: swebench 5.0.2
+  max_workers: 4
+  timeout_per_instance_s: 1800
+
+# 已知代价：非原生模式 prompt 更长、速度更慢，但避免了 tool_call JSON 解析失败。
