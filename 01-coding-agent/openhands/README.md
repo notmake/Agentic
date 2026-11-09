@@ -118,6 +118,18 @@ export LLM_BASE_URL=http://127.0.0.1:6791/v1
 - 重试记录在 `/tmp/llm_proxy.log`，可统计修复率
 - 同时把 `~/.openhands/agent_settings.json` 的 `temperature` 设为 0，从源头降低随机性
 
+## 故障排查：启动时拉取 GitHub 扩展（空补丁）
+
+OpenHands CLI 默认 `load_public_skills=True`，启动时会 `git fetch` GitHub 上的
+`OpenHands/extensions`；网络不通时重试 4 次后直接结束，**产出空补丁**。
+
+本机修复（本地 site-packages 补丁）：
+
+```bash
+sed -i 's/load_public_skills=True,/load_public_skills=False,/' \
+  ~/venvs/openhands/lib/python3.12/site-packages/openhands_cli/stores/agent_store.py
+```
+
 ## 故障排查：Jinja 缓存
 
 如果启动时报 `AttributeError: 'Environment' object has no attribute 'concat'`（agent 初始化后

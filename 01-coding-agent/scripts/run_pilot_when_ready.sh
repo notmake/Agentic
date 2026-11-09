@@ -38,6 +38,25 @@ for iid in "${IDS[@]}"; do
       continue 2
     fi
   done
+
+  # 保护 1：显存被其他任务占用时等待（27B 自身约 19G，上限设 21.5G）
+  while true; do
+    used=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2>/dev/null | sort -n | tail -1)
+    [ -z "$used" ] && break
+    if [ "$used" -lt 21500 ]; then break; fi
+    echo "显存占用 ${used}MiB（可能有其他任务），等待释放..."
+    sleep 60
+  done
+
+  # 保护 2：27B 服务挂了自动重启
+  if ! curl -s --max-time 3 http://127.0.0.1:6790/v1/models 2>/dev/null | grep -q '"models"'; then
+    echo "27B 服务不可用，自动重启..."
+    setsid nohup bash "$ROOT/openhands/serve_llama.sh" > /tmp/llama_server_auto.log 2>&1 < /dev/null &
+    for _ in $(seq 1 40); do
+      sleep 5
+      curl -s --max-time 2 http://127.0.0.1:6790/v1/models 2>/dev/null | grep -q '"models"' && break
+    done
+  fi
   python3 -m openhands.run_instance \
     --dataset "$DATASET" \
     --instance-id "$iid" --from-image \
