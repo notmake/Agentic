@@ -71,6 +71,15 @@
 2. 工具调用 JSON 健壮性是当前最大短板（服务端 parser 严格），修复优先级高于换模型。
 3. 自研 agent 在同实例上 LIMIT_ERROR —— 框架的上下文/工具编排优势被数据证实。
 
+## 2026-11-09 · 工具调用 JSON 修复
+
+- 尝试 1（失败）：代理层 `temperature=0` + JSON 格式提示重试 —— 错误发生在 llama-server
+  内部解析，外层重试无效（3 次全失败）
+- 尝试 2（成功）：`native_tool_calling=False`（OpenHands 非原生模式）—— 工具描述进 prompt，
+  框架解析文本动作，llama-server 不做 JSON 解析
+- 结果：xarray / seaborn 从「空补丁」变为「有补丁并完成官方评测」；
+  失败类型从 FORMAT_ERROR 变为 PATCH_ERROR 5e/5d，解决率仍 6/10
+
 ## 待补
 
 - django / matplotlib 实例结果

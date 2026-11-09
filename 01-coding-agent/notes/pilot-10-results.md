@@ -29,6 +29,23 @@
 3. **PATCH_ERROR 5b（requests）**：整个轨迹没有可靠运行过测试就提交。
 4. 上下文 16K 是硬约束：复杂实例（seaborn）更容易触发长输出/解析失败。
 
+## JSON 解析修复验证（2026-11-09）
+
+问题：llama-server 原生 tool parser 对非法 JSON 直接 500，代理层用
+`temperature=0 + 格式提示` 重试 3 次仍无效（失败在服务端解析，外层救不回来）。
+
+最终方案：启用 OpenHands 的**非原生工具调用**
+（`LLM(native_tool_calling=False)`，框架把工具描述写进 prompt、自己解析文本动作），
+llama-server 不再做 JSON 解析。
+
+| 实例 | 修复前 | 修复后 |
+|---|---|---|
+| pydata__xarray-3364 | FORMAT_ERROR，空补丁 | 有补丁（4200B），官方评测：P2P 回归 8 个 → 5e |
+| mwaskom__seaborn-2848 | FORMAT_ERROR，空补丁 | 有补丁（681B，只加了复现脚本）→ 5d |
+
+结论：**空补丁问题解决，10/10 实例都产出可评测补丁**；解决率仍 6/10，
+剩余失败是模型能力（部分修复/回归/未跑测试），不再是管线故障。
+
 ## 对比
 
 | 路线 | astropy-12907 |

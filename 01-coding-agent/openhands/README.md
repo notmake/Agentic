@@ -91,6 +91,44 @@ EOF
 - `--cache-type-k q8_0 --cache-type-v q8_0`（量化 KV，省显存）
 - 先跑一个实例观察 `nvidia-smi` 峰值，再批量；出现 Xid 立即停
 
+## 工具调用模式（重要）
+
+本机 llama-server 的**原生 tool parser 对非法 JSON 直接 500**，27B 在长输出时偶发
+非法 JSON（引号未闭合），会导致空补丁。实测最终方案是启用 OpenHands 的**非原生工具调用**：
+
+```python
+LLM(..., native_tool_calling=False, temperature=0.0, reasoning_effort="medium")
+```
+
+框架会把工具描述写进 prompt、自己解析文本动作，llama-server 不再做 JSON 解析。
+实测把 2 个空补丁实例都救回成「有补丁、可评测」。
+
+## JSON 容错代理（已弃用，保留作参考）
+
+pilot-10 中 2/10 实例因模型生成非法 tool_call JSON，被 llama-server 直接 500 拒绝。
+`openhands/llm_proxy.py` 在两者之间做一层兜底：
+
+```bash
+python3 openhands/llm_proxy.py --upstream http://127.0.0.1:6790 --port 6791
+export LLM_BASE_URL=http://127.0.0.1:6791/v1
+```
+
+- 正常请求透传
+- 命中 `Failed to parse tool call arguments` 时，用 `temperature=0` + JSON 格式提示重试（最多 3 次）
+- 重试记录在 `/tmp/llm_proxy.log`，可统计修复率
+- 同时把 `~/.openhands/agent_settings.json` 的 `temperature` 设为 0，从源头降低随机性
+
+## 故障排查：Jinja 缓存
+
+如果启动时报 `AttributeError: 'Environment' object has no attribute 'concat'`（agent 初始化后
+几十秒内空手退出、无 patch），是 OpenHands 的 Jinja 模板缓存损坏：
+
+```bash
+rm -rf ~/.openhands/cache/jinja
+```
+
+清掉后重跑即可（本项目已遇到一次，属于环境侧偶发问题）。
+
 ## 已知限制
 
 - **14B 备选只有 16K 上下文**：OpenHands 官方建议 32K+；双 12G 卡开 32K 会 OOM（实测）。
