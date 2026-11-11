@@ -85,10 +85,12 @@ OpenHands 路线使用本机 Qwen3-14B-AWQ（vLLM，16K 上下文，原生 tool 
 ### 实验结果（本机：Qwen3.8-27B-Q4，16K，llama-server）
 
 - **gold 哨兵：3/3 resolved**（评测链路可信）
-- **pilot-10：6/10 resolved（60%）**，失败：2×FORMAT_ERROR、1×5d、1×5b
-- 启用非原生工具调用后，空补丁清零：xarray/seaborn 均可产出补丁并完成官方评测
+- **pilot-10：6/10 resolved（60%）**
+- **lite20（前 10 个完成）：6/10 resolved**，失败：2×5d（部分修复）、2×5e（P2P 回归），
+  空补丁已清零（非原生工具调用 + 补丁提取修复）
 - 同实例对照：OpenHands resolved，自研 sweagent LIMIT_ERROR（40 步空补丁）
-- 详细数据：[notes/pilot-10-results.md](notes/pilot-10-results.md)；方法论：[notes/agent-mental-model.md](notes/agent-mental-model.md)
+- 详细数据：[notes/pilot-10-results.md](notes/pilot-10-results.md)、
+  [notes/lite20-results.md](notes/lite20-results.md)；方法论：[notes/agent-mental-model.md](notes/agent-mental-model.md)
 
 ### 文档
 

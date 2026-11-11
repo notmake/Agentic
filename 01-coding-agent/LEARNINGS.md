@@ -80,6 +80,14 @@
 - 结果：xarray / seaborn 从「空补丁」变为「有补丁并完成官方评测」；
   失败类型从 FORMAT_ERROR 变为 PATCH_ERROR 5e/5d，解决率仍 6/10
 
+## 2026-11-11 · lite20（前 10 个）与补丁提取 bug
+
+- 6/10 resolved；失败 2×5d、2×5e，空补丁清零
+- **补丁提取 bug**：OpenHands 会执行 `git commit`，对当前 HEAD 取 diff 得到空补丁。
+  修复为对运行前 `base_ref` 取 `git diff --cached <base_ref>`；sklearn 因此恢复（977B、resolved）
+- 教训：agent 会改变仓库状态（commit/checkout），补丁提取必须以"运行前"为基准，
+  而不是"结束时"的 HEAD
+
 ## 待补
 
 - django / matplotlib 实例结果
