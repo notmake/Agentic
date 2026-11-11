@@ -134,7 +134,7 @@ def classify_instance(inst_dir: Path, official: dict) -> dict:
             sublabel, reason = "5e_p2p_regression", "破坏了原本通过的测试"
         elif f2p.get("success"):
             sublabel, reason = "5d_partial_f2p", "只修好部分 FAIL_TO_PASS"
-    if not ran_tests(history) and not TEST_COMMAND.search(log_text):
+    if not tests_status and not ran_tests(history) and not TEST_COMMAND.search(log_text):
         sublabel = "5b_never_tested"
         reason = "整个轨迹没有运行过测试"
     return {**base, "category": "PATCH_ERROR", "sublabel": sublabel, "reason": reason}

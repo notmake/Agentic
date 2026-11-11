@@ -100,11 +100,16 @@ def build_task(instance: dict) -> str:
     )
 
 
-def get_patch(workspace: Path) -> str:
+def get_patch(workspace: Path, base_ref: str = "HEAD") -> str:
+    """对 base_ref 取补丁。
+
+    注意：agent 可能自己执行 `git commit`，此时对当前 HEAD 取 diff 会是空的。
+    所以统一对 base_commit（或运行前的 HEAD）取 diff。
+    """
     subprocess.run("git add -A", shell=True, cwd=workspace, check=False,
                    capture_output=True)
     r = subprocess.run(
-        "git diff --cached --no-color -- . "
+        f"git diff --cached {base_ref} --no-color -- . "
         "':(exclude,glob)**/__pycache__/**' ':(exclude,glob)**/*.pyc'",
         shell=True, cwd=workspace, text=True, encoding="utf-8",
         errors="replace", capture_output=True,
@@ -146,6 +151,12 @@ def main() -> None:
     out_dir = Path(args.output_dir or ROOT / "data/runs/openhands" / instance["instance_id"])
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    # 记录运行前的 HEAD，补丁一律对它取 diff（agent 可能自己 commit）
+    base_ref = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=workspace, text=True,
+        capture_output=True, encoding="utf-8",
+    ).stdout.strip() or "HEAD"
+
     env = os.environ.copy()
     cmd = [
         OPENHANDS_BIN, "--headless", "--override-with-envs",
@@ -166,7 +177,7 @@ def main() -> None:
         f"status={status} elapsed={elapsed}s\n\n[stdout]\n{getattr(proc, 'stdout', '')}\n"
         f"[stderr]\n{getattr(proc, 'stderr', '')}", encoding="utf-8",
     )
-    patch = get_patch(workspace)
+    patch = get_patch(workspace, base_ref)
     (out_dir / "patch.diff").write_text(patch, encoding="utf-8")
     with open(out_dir / "prediction.jsonl", "w", encoding="utf-8") as f:
         f.write(json.dumps({
